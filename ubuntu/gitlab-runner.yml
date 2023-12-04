@@ -1,0 +1,34 @@
+- name: Install GitLab Runner
+  hosts: localhost
+  connection: local
+  become: true
+  tasks:
+    - name: Install GitLab Runner dependencies
+      apt:
+        name: wget curl
+
+    - name: Add GitLab Runner repository and GPG key
+      apt_key:
+        url: https://packages.gitlab.com/gpg.key
+        state: present
+
+    - name: Add GitLab Runner repository
+      apt_repository:
+        repo: deb https://packages.gitlab.com/runner/gitlab-runner/ubuntu/ {{ ansible_distribution_release }} main
+        state: present
+
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install GitLab Runner
+      apt:
+        name: gitlab-runner
+        state: present
+
+    - name: Add gitlab-runner to sudoers
+      lineinfile:
+        dest: /etc/sudoers
+        line: 'gitlab-runner ALL=(ALL) NOPASSWD:ALL'
+        validate: 'visudo -cf %s'
+        state: present

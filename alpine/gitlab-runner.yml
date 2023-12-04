@@ -1,0 +1,46 @@
+- name: Install GitLab Runner on Alpine Linux
+  hosts: localhost
+  connection: local
+  become: true
+  tasks:
+    - name: Install required dependencies
+      apk:
+        name:
+          - curl
+          - openssh-client
+          - ca-certificates
+        state: present
+
+    - name: Install Git
+      apk:
+        name: git
+        state: present
+
+    - name: Download GitLab Runner
+      get_url:
+        url: "https://gitlab-runner-downloads.s3.amazonaws.com/latest/binaries/gitlab-runner-linux-amd64"
+        dest: "/usr/local/bin/gitlab-runner"
+        mode: u+x
+
+    - name: Create GitLab Runner working directory
+      file:
+        path: /home/gitlab-runner
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Configure GitLab Runner
+      command: gitlab-runner install --user=root --working-directory=/home/gitlab-runner
+
+    - name: Configure sudoers for gitlab-runner
+      lineinfile:
+        path: /etc/sudoers
+        line: "gitlab-runner ALL=(ALL) NOPASSWD:ALL"
+        validate: "visudo -cf %s"
+
+    - name: Start or restart GitLab Runner service on Alpine Linux
+      shell:
+        cmd: |
+          rc-service gitlab-runner stop || true   # Stop if already running (ignoring failure)
+          rc-service gitlab-runner start

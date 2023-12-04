@@ -1,0 +1,15 @@
+---
+- name: Install Docker on Linux Alpine
+  hosts: localhost
+  connection: local
+  become: true
+  tasks:
+    - name: Install Docker dependencies
+      raw: apk --no-cache add docker
+      args:
+        executable: /bin/ash
+
+    - name: Start Docker service
+      raw: service docker start
+      args:
+        executable: /bin/ash
