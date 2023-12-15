@@ -3,10 +3,7 @@
   connection: local
   become: true
   tasks:
-    - name: Install GitLab Runner dependencies
-      apt:
-        name: wget curl
-
+  
     - name: Add GitLab Runner repository and GPG key
       apt_key:
         url: https://packages.gitlab.com/gpg.key
