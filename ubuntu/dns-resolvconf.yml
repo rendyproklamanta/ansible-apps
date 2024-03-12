@@ -1,0 +1,27 @@
+- name: Configure resolvconf and set nameservers
+  hosts: localhost
+  connection: local
+  become: yes
+  tasks:
+    - name: Install resolvconf package
+      apt:
+        name: resolvconf
+        state: present
+
+    - name: Set nameservers in resolvconf configuration file
+      lineinfile:
+        path: /etc/resolvconf/resolv.conf.d/base
+        line: "nameserver 8.8.8.8"
+        state: present
+      notify: Update resolvconf
+
+    - name: Set nameservers in resolvconf configuration file
+      lineinfile:
+        path: /etc/resolvconf/resolv.conf.d/base
+        line: "nameserver 8.8.4.4"
+        state: present
+      notify: Update resolvconf
+
+  handlers:
+    - name: Update resolvconf
+      command: resolvconf -u
