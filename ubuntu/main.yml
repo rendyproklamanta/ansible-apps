@@ -1,0 +1,4 @@
+- import_playbook: dns-resolvconf.yml
+- import_playbook: port-ssh.yml
+- import_playbook: docker-swarm.yml
+- import_playbook: gitlab-runner.yml

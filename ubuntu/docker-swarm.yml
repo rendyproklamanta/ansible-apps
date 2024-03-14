@@ -4,7 +4,7 @@
   become: true
   tasks:
     - name: Add UFW rules
-      shell: >
+      shell: |
         ufw allow 2376/tcp
         ufw allow 2377/tcp
         ufw allow 7946/tcp
@@ -17,6 +17,6 @@
         ufw enable
 
     - name: Initialize Docker Swarm in leader node
-      shell: >
+      shell: |
         docker swarm init
         docker node ls
