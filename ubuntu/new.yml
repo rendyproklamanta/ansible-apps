@@ -1,0 +1,16 @@
+- name: Setting up new server
+  hosts: localhost
+  connection: local
+  become: true
+  tasks:
+    - name: Include resolvconf
+      include_tasks: dns-resolvconf.yml
+
+    - name: Include port SSH
+      include_tasks: port-ssh.yml
+
+    - name: Include Docker Swarm
+      include_tasks: docker-swarm.yml
+
+    - name: Include gitlab runner
+      include_tasks: gitlab-runner.yml
