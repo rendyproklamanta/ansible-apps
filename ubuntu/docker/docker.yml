@@ -7,9 +7,14 @@
       apt:
         update_cache: yes
 
-    - name: Install dependencies
-      apt:
-        name: apt-transport-https ca-certificates curl software-properties-common
+    - name: Install required packages for docker
+      package:
+        name: 
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - software-properties-common
+        state: present
 
     - name: Add Docker GPG key
       apt_key:
