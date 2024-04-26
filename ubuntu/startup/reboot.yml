@@ -1,0 +1,7 @@
+- name: Reboot Ubuntu systems
+  hosts: localhost
+  connection: local
+  become: yes
+  tasks:
+    - name: Reboot the system
+      reboot:

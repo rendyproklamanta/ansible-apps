@@ -2,3 +2,4 @@
 - import_playbook: update.yml
 - import_playbook: port-ssh.yml
 - import_playbook: gitlab-runner.yml
+- import_playbook: reboot.yml
