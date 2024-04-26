@@ -4,4 +4,4 @@
   become: yes
   tasks:
     - name: Reboot the system
-      reboot:
+      shell: reboot
