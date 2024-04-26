@@ -1,13 +1,20 @@
-- Run ansible
-```
-ansible-playbook filename.yml
-```
 - Install ansible
 ```
 apt install ansible
 ```
 
-- Register Runner
+- Create dir for ansible
 ```
-gitlab-runner register
+mkdir -p /var/lib/ansible
+```
+
+- Clone git
+```
+cd /var/lib/ansible
+git clone https://github.com/rendyproklamanta/ansible-apps.git .
+```
+
+- Run ansible
+```
+ansible-playbook filename.yml
 ```
