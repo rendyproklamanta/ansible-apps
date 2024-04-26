@@ -1,0 +1,38 @@
+- name: Setup Traefik on Docker Swarm
+  hosts: localhost
+  connection: local
+  become: yes
+  tasks:
+    - name: Allow HTTP traffic
+      ufw:
+        rule: allow
+        port: http
+        comment: "Allow HTTP traffic"
+
+    - name: Allow HTTPS traffic
+      ufw:
+        rule: allow
+        port: https
+        comment: "Allow HTTPS traffic"
+
+    - name: Create directory for Traefik
+      file:
+        path: /var/lib/traefik
+        state: directory
+        mode: "0755"
+
+    - name: Clone Traefik configuration from GitHub
+      git:
+        repo: https://github.com/rendyproklamanta/docker-swarm-traefik.git
+        dest: /var/lib/traefik
+        clone: yes
+
+    - name: Create overlay network for Traefik
+      docker_network:
+        name: traefik-network
+        driver: overlay
+
+    - name: Deploy Traefik stack
+      command: "docker stack deploy --compose-file v2/docker-compose.traefik.yml traefik"
+      args:
+        chdir: /var/lib/traefik
