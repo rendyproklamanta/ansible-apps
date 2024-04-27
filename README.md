@@ -1,6 +1,6 @@
 - Install ansible
 ```
-apt install ansible
+apt install ansible -y
 ```
 
 - Create dir for ansible

@@ -28,9 +28,7 @@
         clone: yes
 
     - name: Create overlay network for Traefik
-      docker_network:
-        name: traefik-network
-        driver: overlay
+      shell: "docker network create --driver=overlay traefik-network"
 
     - name: Deploy Traefik stack
       command: "docker stack deploy --compose-file v2/docker-compose.traefik.yml traefik"
