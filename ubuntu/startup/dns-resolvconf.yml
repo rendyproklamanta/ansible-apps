@@ -10,14 +10,14 @@
 
     - name: Set nameservers in resolvconf configuration file
       lineinfile:
-        path: /etc/resolvconf/resolv.conf.d/base
+        path: /etc/resolvconf/resolv.conf.d/head
         line: "nameserver 8.8.8.8"
         state: present
       notify: Update resolvconf
 
     - name: Set nameservers in resolvconf configuration file
       lineinfile:
-        path: /etc/resolvconf/resolv.conf.d/base
+        path: /etc/resolvconf/resolv.conf.d/head
         line: "nameserver 8.8.4.4"
         state: present
       notify: Update resolvconf
