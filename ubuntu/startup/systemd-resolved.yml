@@ -1,0 +1,33 @@
+---
+- name: Configure systemd-resolved on Ubuntu
+  hosts: localhost
+  connection: local
+  become: true
+
+  tasks:
+    - name: Ensure systemd-resolved is installed
+      apt:
+        name: systemd-resolved
+        state: present
+        update_cache: yes
+
+    - name: Configure systemd-resolved
+      copy:
+        dest: /etc/systemd/resolved.conf
+        content: |
+          [Resolve]
+          DNS=1.1.1.1 8.8.8.8
+          FallbackDNS=8.8.4.4
+
+    - name: Restart systemd-resolved service
+      service:
+        name: systemd-resolved
+        state: restarted
+
+    - name: Check systemd-resolved status
+      command: resolvectl status
+      register: resolvectl_status
+
+    - name: Display systemd-resolved status
+      debug:
+        var: resolvectl_status.stdout

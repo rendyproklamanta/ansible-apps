@@ -1,4 +1,4 @@
-- import_playbook: dns-resolvconf.yml
+- import_playbook: systemd-resolved.yml
 - import_playbook: update.yml
 - import_playbook: port-ssh.yml
 - import_playbook: gitlab-runner.yml
