@@ -32,6 +32,6 @@
       ignore_errors: yes
 
     - name: Deploy Traefik stack
-      command: "docker stack deploy --compose-file v2/docker-compose.traefik.yml traefik"
+      command: "docker stack deploy --compose-file v2/docker-compose.yml traefik"
       args:
         chdir: /var/lib/traefik
