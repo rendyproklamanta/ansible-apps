@@ -1,0 +1,111 @@
+---
+- name: Install and configure Wazuh agent to secure Docker containers
+  hosts: localhost
+  connection: local
+  become: true
+
+  vars:
+    wazuh_manager_ip: "192.168.1.100"  # Replace with your Wazuh manager IP or hostname
+    wazuh_repo_url: "https://packages.wazuh.com/4.x/apt/"
+    wazuh_key_url: "https://packages.wazuh.com/key/GPG-KEY-WAZUH"
+    wazuh_agent_version: "4.4.0"
+    docker_log_path: "/var/lib/docker/containers"
+    docker_daemon_log: "/var/log/docker.log"
+
+  tasks:
+    # Step 1: Install the Wazuh Agent
+    - name: Install Wazuh repository GPG key
+      apt_key:
+        url: "{{ wazuh_key_url }}"
+        state: present
+
+    - name: Add Wazuh repository
+      apt_repository:
+        repo: "deb {{ wazuh_repo_url }} stable main"
+        state: present
+
+    - name: Install Wazuh agent
+      apt:
+        name: wazuh-agent
+        state: present
+        update_cache: yes
+
+    - name: Ensure Wazuh agent version is installed
+      apt:
+        name: wazuh-agent
+        state: present
+        version: "{{ wazuh_agent_version }}"
+
+    # Step 2: Configure Docker Security Monitoring in ossec.conf
+    - name: Configure Wazuh agent for Docker security
+      blockinfile:
+        path: /var/ossec/etc/ossec.conf
+        block: |
+          <agent>
+            <name>{{ inventory_hostname }}</name>
+            <manager>
+              <address>{{ wazuh_manager_ip }}</address>
+              <port>1514</port>
+            </manager>
+          </agent>
+
+          <!-- File Integrity Monitoring for Docker Files -->
+          <syscheck>
+            <frequency>3600</frequency>  <!-- How often to check files -->
+            <directories check_all="yes">{{ docker_log_path }}</directories>  <!-- Monitor Docker container logs -->
+            <realtime>yes</realtime> <!-- Real-time monitoring of Docker files -->
+          </syscheck>
+
+          <!-- Docker Log Monitoring -->
+          <localfile>
+            <location>{{ docker_daemon_log }}</location>  <!-- Monitor Docker daemon logs -->
+            <log_format>syslog</log_format>
+          </localfile>
+
+          <!-- Docker Events Monitoring -->
+          <localfile>
+            <location>/var/log/syslog</location> <!-- Monitor syslog for Docker events -->
+            <log_format>syslog</log_format>
+            <options>docker</options>  <!-- Filter Docker events -->
+          </localfile>
+
+          <!-- Rootkit Detection -->
+          <rootcheck>
+            <disabled>no</disabled> <!-- Enable rootkit detection -->
+            <rootkit_files>/var/ossec/etc/shared/rootkit_files.txt</rootkit_files>
+            <rootkit_trojans>/var/ossec/etc/shared/rootkit_trojans.txt</rootkit_trojans>
+          </rootcheck>
+
+          <!-- Active Response for Docker security -->
+          <active-response>
+            <command>firewall-drop</command>
+            <location>all</location>
+            <disabled>no</disabled>
+          </active-response>
+
+    # Step 3: Register Agent with Wazuh Manager
+    - name: Register Wazuh agent with manager
+      command: "/var/ossec/bin/agent-auth -m {{ wazuh_manager_ip }}"
+
+    # Step 4: Enable and Start the Wazuh Agent Service
+    - name: Enable and start Wazuh agent service
+      systemd:
+        name: wazuh-agent
+        enabled: yes
+        state: started
+
+    # Step 5: Allow Wazuh ports through the firewall (if UFW is used)
+    - name: Allow Wazuh ports through UFW
+      ufw:
+        rule: allow
+        port: "{{ item }}"
+        proto: tcp
+      loop:
+        - 1514
+        - 1515
+
+  handlers:
+    - name: restart wazuh-agent
+      systemd:
+        name: wazuh-agent
+        state: restarted

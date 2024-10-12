@@ -1,0 +1,53 @@
+- name: Deny traffic on various unnecessary ports
+  hosts: localhost
+  connection: local
+  become: true
+
+  tasks:
+    - name: Deny traffic on port 23 (Telnet)
+      ufw:
+        rule: deny
+        port: 23
+        proto: tcp
+
+    - name: Deny traffic on port 25 (SMTP)
+      ufw:
+        rule: deny
+        port: 25
+        proto: tcp
+
+    - name: Deny traffic on port 110 (POP3)
+      ufw:
+        rule: deny
+        port: 110
+        proto: tcp
+
+    - name: Deny traffic on port 143 (IMAP)
+      ufw:
+        rule: deny
+        port: 143
+        proto: tcp
+
+    - name: Deny traffic on port 21 (FTP)
+      ufw:
+        rule: deny
+        port: 21
+        proto: tcp
+
+    - name: Deny traffic on port 22 (FTP)
+      ufw:
+        rule: deny
+        port: 21
+        proto: tcp
+
+    - name: Deny traffic on port 445 (SMB)
+      ufw:
+        rule: deny
+        port: 445
+        proto: tcp
+
+    - name: Deny traffic on port 2049 (NFS)
+      ufw:
+        rule: deny
+        port: 2049
+        proto: tcp

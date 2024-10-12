@@ -1,0 +1,68 @@
+---
+- name: Install and configure Fail2Ban
+  hosts: localhost
+  connection: local
+  become: true
+  
+  vars:
+    fail2ban_jail_local_path: "/etc/fail2ban/jail.local"
+    sshd_maxretry: 5        # Max retries before banning IP
+    ban_time: 600           # Ban time in seconds
+    find_time: 600          # Find time (window for detecting failures)
+
+  tasks:
+    # Step 1: Install Fail2Ban package
+    - name: Ensure Fail2Ban is installed (Debian/Ubuntu)
+      when: ansible_os_family == "Debian"
+      apt:
+        name: fail2ban
+        state: present
+        update_cache: yes
+
+    - name: Ensure Fail2Ban is installed (RedHat/CentOS)
+      when: ansible_os_family == "RedHat"
+      yum:
+        name: fail2ban
+        state: present
+
+    # Step 2: Create Fail2Ban configuration file (jail.local)
+    - name: Backup the original jail.local if it exists
+      copy:
+        src: "{{ fail2ban_jail_local_path }}"
+        dest: "{{ fail2ban_jail_local_path }}.bak"
+        backup: yes
+      ignore_errors: true
+
+    - name: Configure Fail2Ban for SSH protection in jail.local
+      copy:
+        dest: "{{ fail2ban_jail_local_path }}"
+        content: |
+          [DEFAULT]
+          # Ban settings
+          bantime = {{ ban_time }}
+          findtime = {{ find_time }}
+          maxretry = {{ sshd_maxretry }}
+
+          [sshd]
+          enabled = true
+          port = ssh
+          filter = sshd
+          logpath = /var/log/auth.log
+          maxretry = {{ sshd_maxretry }}
+
+    # Step 3: Restart Fail2Ban service to apply configuration
+    - name: Ensure Fail2Ban service is started and enabled at boot
+      service:
+        name: fail2ban
+        state: started
+        enabled: yes
+
+    # Step 4: Verify Fail2Ban status
+    - name: Check Fail2Ban service status
+      shell: systemctl status fail2ban | grep Active
+      register: fail2ban_status
+      changed_when: false
+
+    - name: Debug Fail2Ban service status
+      debug:
+        msg: "Fail2Ban is active: {{ fail2ban_status.stdout }}"

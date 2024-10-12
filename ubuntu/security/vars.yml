@@ -1,0 +1,3 @@
+ssh_port: 2123                # Change this port to your preferred SSH port
+ssh_user: your_user           # Change to the user you'd like to create
+ssh_paswd: your_password      # Set the password

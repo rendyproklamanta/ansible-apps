@@ -1,0 +1,7 @@
+- import_playbook: ufw-whitelist.yml
+- import_playbook: ssh.yml
+- import_playbook: auditd.yml
+- import_playbook: fail2ban.yml
+- import_playbook: denyhost.yml
+- import_playbook: update.yml
+- import_playbook: ufw-blocklist.yml

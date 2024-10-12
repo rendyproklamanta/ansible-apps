@@ -1,0 +1,77 @@
+- name: Install and configure Google Authenticator for SSH login
+  hosts: localhost
+  connection: local
+  become: true
+
+  vars:
+    google_authenticator_pam_path: "/etc/pam.d/sshd"
+    sshd_config_path: "/etc/ssh/sshd_config"
+    google_auth_pam: "auth required pam_google_authenticator.so"
+
+  tasks:
+    # Step 1: Install Google Authenticator PAM module
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install Google Authenticator package
+      apt:
+        name: libpam-google-authenticator
+        state: present
+
+    # Step 2: Configure PAM to include Google Authenticator for SSH
+    - name: Backup PAM SSH configuration
+      copy:
+        src: "{{ google_authenticator_pam_path }}"
+        dest: "{{ google_authenticator_pam_path }}.bak"
+        backup: yes
+
+    - name: Add Google Authenticator PAM module to sshd PAM config
+      lineinfile:
+        path: "{{ google_authenticator_pam_path }}"
+        regexp: '^auth required pam_google_authenticator.so'
+        line: "{{ google_auth_pam }}"
+        state: present
+
+    # Step 3: Configure SSHD to require two-factor authentication
+    - name: Backup sshd_config
+      copy:
+        src: "{{ sshd_config_path }}"
+        dest: "{{ sshd_config_path }}.bak"
+        backup: yes
+
+    - name: Ensure ChallengeResponseAuthentication is enabled in SSHD
+      lineinfile:
+        path: "{{ sshd_config_path }}"
+        regexp: '^#?ChallengeResponseAuthentication'
+        line: 'ChallengeResponseAuthentication yes'
+        state: present
+
+    - name: Ensure UsePAM is enabled in SSHD
+      lineinfile:
+        path: "{{ sshd_config_path }}"
+        regexp: '^#?UsePAM'
+        line: 'UsePAM yes'
+        state: present
+
+    - name: Restart SSH service to apply configuration
+      service:
+        name: ssh
+        state: restarted
+
+    # Step 4: Generate Google Authenticator for each user
+    - name: Generate Google Authenticator for each user
+      user:
+        name: "{{ item }}"
+        shell: /bin/bash
+      loop: "{{ lookup('ansible.builtin.pipe', 'getent passwd | cut -d: -f1') | splitlines }}"
+      ignore_errors: yes
+
+    - name: Run Google Authenticator for each user (manual step)
+      shell: "sudo -u {{ item }} google-authenticator -t -d -f -r 3 -R 30 -w 3"
+      loop: "{{ lookup('ansible.builtin.pipe', 'getent passwd | cut -d: -f1') | splitlines }}"
+      ignore_errors: yes
+
+    - name: Inform users to manually run google-authenticator
+      debug:
+        msg: "Each user needs to manually run google-authenticator to complete setup."

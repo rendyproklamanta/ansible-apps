@@ -1,0 +1,87 @@
+---
+- name: Install and configure Auditd
+  hosts: localhost
+  connection: local
+  become: true
+
+  vars:
+    auditd_rules_path: "/etc/audit/rules.d/audit.rules"
+    audit_log_file: "/var/log/audit/audit.log"
+
+  tasks:
+    # Step 1: Install Auditd
+    - name: Ensure auditd is installed
+      apt:
+        name: auditd
+        state: present
+        update_cache: yes
+
+    # Step 2: Configure Auditd rules
+    - name: Backup audit rules configuration
+      copy:
+        src: "{{ auditd_rules_path }}"
+        dest: "{{ auditd_rules_path }}.bak"
+        backup: yes
+
+    - name: Add custom audit rules
+      copy:
+        dest: "{{ auditd_rules_path }}"
+        content: |
+          ## Audit rule for monitoring unauthorized access attempts ##
+          -w /etc/passwd -p wa -k identity
+          -w /etc/group -p wa -k identity
+          -w /etc/shadow -p wa -k identity
+
+          ## Audit rule for monitoring all sudo commands ##
+          -w /var/log/sudo.log -p wa -k sudo-commands
+
+          ## Monitor any attempt to modify audit configurations ##
+          -w /etc/audit/auditd.conf -p wa -k audit-config
+          -w /etc/audit/audit.rules -p wa -k audit-rules
+
+          ## Monitor user login/logout events ##
+          -w /var/log/wtmp -p wa -k logins
+          -w /var/log/btmp -p wa -k failed-logins
+
+          ## Monitor /etc/hosts file for changes ##
+          -w /etc/hosts -p wa -k network-modifications
+
+          ## Monitor file permission changes across key directories ##
+          -w /var/log/audit/ -p wa -k audit-log
+          -w /etc/ssh/sshd_config -p wa -k ssh-config
+          
+          ## Monitor attempts to modify kernel modules ##
+          -a always,exit -F arch=b64 -S init_module -S delete_module -k kernel-modules
+
+    # Step 3: Restart Auditd service to apply configuration
+    - name: Ensure auditd service is enabled and started
+      systemd:
+        name: auditd
+        enabled: yes
+        state: restarted
+
+    # Step 4: Ensure that Auditd logs are rotated
+    - name: Ensure log rotation is configured for Auditd logs
+      copy:
+        dest: /etc/logrotate.d/audit
+        content: |
+          {{ audit_log_file }} {
+            rotate 4
+            weekly
+            compress
+            delaycompress
+            missingok
+            notifempty
+            create 640 root adm
+            postrotate
+              /usr/sbin/service auditd restart > /dev/null
+            endscript
+          }
+
+    # Step 5: Ensure the audit logs directory has correct permissions
+    - name: Set permissions for audit logs
+      file:
+        path: /var/log/audit
+        owner: root
+        group: root
+        mode: '0700'

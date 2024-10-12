@@ -1,0 +1,15 @@
+- name: Install and configure UFW
+  hosts: localhost
+  connection: local
+  become: true
+
+  tasks:
+    - name: Ensure UFW is installed (Debian/Ubuntu)
+      apt:
+        name: ufw
+        state: present
+        update_cache: yes
+
+    - name: Enable UFW
+      ufw:
+        state: enabled

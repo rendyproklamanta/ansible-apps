@@ -1,0 +1,31 @@
+---
+- name: Install and configure UFW
+  hosts: localhost
+  connection: local
+  become: true
+
+  tasks:
+    # Step 2: Allow OpenSSH service (for SSH connections)
+    - name: Allow OpenSSH through UFW
+      ufw:
+        rule: allow
+        name: OpenSSH
+
+    # Step 3: Allow HTTP (port 80) and HTTPS (port 443) traffic (if you're running a web server)
+    - name: Allow HTTP and HTTPS traffic
+      ufw:
+        rule: allow
+        port: "{{ item }}"
+        proto: tcp
+      loop:
+        - 80
+        - 443
+
+    # Step 5: Deny all incoming traffic by default (but allow outgoing)
+    - name: Set default UFW rules (deny incoming, allow outgoing)
+      ufw:
+        default:
+          policy: "{{ item }}"
+      loop:
+        - { incoming: deny }
+        - { outgoing: allow }

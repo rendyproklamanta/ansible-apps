@@ -1,0 +1,17 @@
+- name: Install security tools
+  hosts: localhost
+  connection: local
+  become: true
+  
+  tasks:
+    - name: Enable automatic security updates
+      apt:
+        name: unattended-upgrades
+        state: present
+
+    - name: Configure unattended-upgrades for automatic security patches
+      lineinfile:
+        path: /etc/apt/apt.conf.d/50unattended-upgrades
+        regexp: '^//\s*"origin=Debian,codename=${distro_codename},label=Debian-Security";'
+        line: '"origin=Debian,codename=${distro_codename},label=Debian-Security";'
+        state: present

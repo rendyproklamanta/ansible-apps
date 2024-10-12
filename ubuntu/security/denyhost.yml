@@ -1,0 +1,68 @@
+---
+- name: Install and configure DenyHosts
+  hosts: localhost
+  connection: local
+  become: true
+  
+  vars:
+    denyhosts_conf_path: "/etc/denyhosts.conf"
+    sshd_auth_log: "/var/log/auth.log"
+    deny_threshold: 5  # Number of failed attempts before blocking
+
+  tasks:
+    # Step 1: Install DenyHosts
+    - name: Ensure EPEL repository is installed (for RHEL-based distros)
+      when: ansible_os_family == "RedHat"
+      yum:
+        name: epel-release
+        state: present
+
+    - name: Install DenyHosts package (Ubuntu/Debian)
+      when: ansible_os_family == "Debian"
+      apt:
+        name: denyhosts
+        state: present
+        update_cache: yes
+
+    - name: Install DenyHosts package (RedHat/CentOS)
+      when: ansible_os_family == "RedHat"
+      yum:
+        name: denyhosts
+        state: present
+
+    # Step 2: Configure DenyHosts
+    - name: Backup the original DenyHosts configuration file
+      copy:
+        src: "{{ denyhosts_conf_path }}"
+        dest: "{{ denyhosts_conf_path }}.bak"
+        backup: yes
+
+    - name: Configure DenyHosts
+      lineinfile:
+        path: "{{ denyhosts_conf_path }}"
+        regexp: "^{{ item.regexp }}"
+        line: "{{ item.line }}"
+      loop:
+        - { regexp: 'DENY_THRESHOLD_INVALID', line: "DENY_THRESHOLD_INVALID = {{ deny_threshold }}" }
+        - { regexp: 'DENY_THRESHOLD_VALID', line: "DENY_THRESHOLD_VALID = {{ deny_threshold }}" }
+        - { regexp: 'DENY_THRESHOLD_ROOT', line: "DENY_THRESHOLD_ROOT = {{ deny_threshold }}" }
+        - { regexp: 'BLOCK_SERVICE', line: "BLOCK_SERVICE = sshd" }
+        - { regexp: 'HOSTS_DENY', line: "HOSTS_DENY = /etc/hosts.deny" }
+        - { regexp: 'SECURE_LOG', line: "SECURE_LOG = {{ sshd_auth_log }}" }
+
+    # Step 3: Restart DenyHosts service
+    - name: Ensure DenyHosts service is started and enabled at boot
+      service:
+        name: denyhosts
+        state: started
+        enabled: yes
+
+    # Step 4: Ensure DenyHosts is running
+    - name: Verify DenyHosts service status
+      shell: systemctl is-active denyhosts
+      register: denyhosts_status
+      changed_when: false
+
+    - name: Debug DenyHosts status
+      debug:
+        msg: "DenyHosts is running: {{ denyhosts_status.stdout }}"

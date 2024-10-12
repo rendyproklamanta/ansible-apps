@@ -1,0 +1,80 @@
+---
+- name: Secure SSH
+  hosts: localhost
+  connection: local
+  become: true
+
+  vars_files:
+    - vars.yml
+
+  tasks:
+    # Step 1: Add the new user with sudo privileges and SSH key authentication
+    - name: Create new user with sudo privileges
+      user:
+        name: "{{ ssh_user }}"
+        shell: /bin/bash
+        createhome: yes
+        groups: sudo
+        password: "{{ ssh_paswd | password_hash('sha512') }}"  # Replace with hashed password
+      register: ssh_user_result
+
+    - name: Create .ssh directory for the user
+      file:
+        path: "/home/{{ ssh_user }}/.ssh"
+        state: directory
+        owner: "{{ ssh_user }}"
+        group: "{{ ssh_user }}"
+        mode: '0700'
+
+    - name: Copy SSH public key for the user
+      copy:
+        src: /path/to/your/public_key.pub   # Replace with the actual path to your SSH public key
+        dest: "/home/{{ ssh_user }}/.ssh/authorized_keys"
+        owner: "{{ ssh_user }}"
+        group: "{{ ssh_user }}"
+        mode: '0600'
+
+    # Step 2: Harden SSH configuration
+    - name: Harden SSH - Disable root login, disable password authentication, and change SSH port
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: "{{ item.regexp }}"
+        line: "{{ item.line }}"
+        state: present
+      loop:
+        - { regexp: '^#?PermitRootLogin', line: 'PermitRootLogin no' }
+        - { regexp: '^#?PasswordAuthentication', line: 'PasswordAuthentication no' }
+        - { regexp: '^#?Port', line: 'Port {{ ssh_port }}' }
+        - { regexp: '^#?AllowUsers', line: 'AllowUsers {{ ssh_user }}' }
+
+    # # Step 3: Optional - Restrict SSH to specific IP ranges (for added security)
+    # - name: Restrict SSH access to specific IP ranges (optional)
+    #   lineinfile:
+    #     path: /etc/ssh/sshd_config
+    #     regexp: '^#?ListenAddress'
+    #     line: 'ListenAddress 192.168.1.100'  # Replace with your server's IP or range
+    #     state: present
+
+    # - name: Allow SSH only from a specific IP
+    #   ufw:
+    #     rule: allow
+    #     port: 2123
+    #     proto: tcp
+    #     from_ip: 192.168.1.100   # Replace with your trusted IP
+
+    # Step 4: Reload SSH service to apply changes
+    - name: Restart SSH service to apply changes
+      systemd:
+        name: ssh
+        state: restarted
+
+    # Step 5: Ensure UFW firewall allows the new SSH port
+    - name: Allow new SSH port in UFW
+      ufw:
+        rule: allow
+        port: {{ ssh_port }}
+        proto: tcp
+
+    - name: Ensure UFW is enabled
+      ufw:
+        state: enabled
