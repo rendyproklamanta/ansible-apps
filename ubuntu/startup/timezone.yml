@@ -1,0 +1,81 @@
+- name: Setting timezone
+  hosts: localhost
+  connection: local
+  become: true
+
+  tasks:
+    - name: Backup current localtime
+      command: mv /etc/localtime /etc/localtime.bak
+      ignore_errors: yes
+
+    - name: Set timezone to Asia/Jakarta
+      file:
+        src: /usr/share/zoneinfo/Asia/Jakarta
+        dest: /etc/localtime
+        state: link
+
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install ntp and ntpdate
+      apt:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - ntp
+        - ntpdate
+
+    - name: Stop NTP service
+      service:
+        name: ntp
+        state: stopped
+
+    - name: Sync time with ntpdate
+      command: ntpdate 1.id.pool.ntp.org
+
+    - name: Start NTP service
+      service:
+        name: ntp
+        state: started
+        
+    - name: Ensure SYNC_HWCLOCK=yes in /etc/default/ntpdate
+      lineinfile:
+        path: /etc/default/ntpdate
+        regexp: '^SYNC_HWCLOCK='
+        line: 'SYNC_HWCLOCK=yes'
+        create: yes
+
+    - name: Backup current NTP configuration
+      copy:
+        src: /etc/ntp.conf
+        dest: /etc/ntp.conf.bak
+
+    - name: Update NTP configuration
+      blockinfile:
+        path: /etc/ntp.conf
+        marker: "# {mark} ANSIBLE MANAGED BLOCK"
+        block: |
+          ## Use Indonesia time servers
+          server 0.id.pool.ntp.org iburst
+          server 1.id.pool.ntp.org iburst
+          server 2.id.pool.ntp.org iburst
+          server 3.id.pool.ntp.org iburst
+
+    - name: Restart NTP service
+      service:
+        name: ntp
+        state: restarted
+        enabled: yes
+
+    - name: Sync hardware clock with system time
+      command: hwclock --systohc --localtime
+
+    - name: Check system date
+      command: date
+
+    - name: Check hardware clock
+      command: hwclock --show
+
+    - name: Verify the timezone link
+      command: ls -l /etc/localtime
