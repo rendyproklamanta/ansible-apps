@@ -14,13 +14,6 @@
         repo: deb https://packages.gitlab.com/runner/gitlab-runner/ubuntu/ {{ ansible_distribution_release }} main
         state: present
 
-    - name: Wait for apt-get lock to be released
-      wait_for:
-        path: /var/lib/apt/lists/lock
-        state: absent
-        delay: 5
-        timeout: 300
-
     - name: Update apt cache
       apt:
         update_cache: yes

@@ -14,13 +14,6 @@
         dest: /etc/localtime
         state: link
 
-    - name: Wait for apt-get lock to be released
-      wait_for:
-        path: /var/lib/apt/lists/lock
-        state: absent
-        delay: 5
-        timeout: 300
-
     - name: Update apt cache
       apt:
         update_cache: yes
