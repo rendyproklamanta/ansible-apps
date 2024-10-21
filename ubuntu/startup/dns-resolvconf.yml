@@ -7,19 +7,17 @@
       apt:
         name: resolvconf
         state: present
+      retries: 5
+      delay: 10
+      register: apt_result
+      until: apt_result is succeeded
 
     - name: Set nameservers in resolvconf configuration file
-      lineinfile:
+      blockinfile:
         path: /etc/resolvconf/resolv.conf.d/head
-        line: "nameserver 8.8.8.8"
-        state: present
-      notify: Update resolvconf
-
-    - name: Set nameservers in resolvconf configuration file
-      lineinfile:
-        path: /etc/resolvconf/resolv.conf.d/head
-        line: "nameserver 8.8.4.4"
-        state: present
+        block: |
+          nameserver 8.8.8.8
+          nameserver 8.8.4.4
       notify: Update resolvconf
 
   handlers:
