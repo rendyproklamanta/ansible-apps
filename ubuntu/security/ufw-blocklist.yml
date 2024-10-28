@@ -34,10 +34,10 @@
         port: 21
         proto: tcp
 
-    - name: Deny traffic on port 22 (FTP)
+    - name: Deny traffic on port 22 (SSH)
       ufw:
         rule: deny
-        port: 21
+        port: 22
         proto: tcp
 
     - name: Deny traffic on port 445 (SMB)

@@ -1,5 +1,4 @@
----
-- name: Install and configure Wazuh agent to secure Docker containers
+- name: Install and configure Wazuh agent to secure OS
   hosts: localhost
   connection: local
   become: true
@@ -11,6 +10,13 @@
     wazuh_agent_version: "4.4.0"
     docker_log_path: "/var/lib/docker/containers"
     docker_daemon_log: "/var/log/docker.log"
+    log_files_to_monitor:
+      - { path: "/var/log/auth.log", format: "syslog" }
+      - { path: "/var/log/kern.log", format: "syslog" }
+      - { path: "/var/log/apache2/access.log", format: "apache" }
+      - { path: "/var/log/nginx/access.log", format: "nginx" }
+      - { path: "/var/log/traefik/access.log", format: "json" }
+      - { path: "/var/log/fail2ban.log", format: "syslog" }
 
   tasks:
     # Step 1: Install the Wazuh Agent
@@ -82,6 +88,14 @@
             <location>all</location>
             <disabled>no</disabled>
           </active-response>
+
+          <!-- Additional Log Monitoring -->
+          {% for log in log_files_to_monitor %}
+          <localfile>
+            <location>{{ log.path }}</location>
+            <log_format>{{ log.format }}</log_format>
+          </localfile>
+          {% endfor %}
 
     # Step 3: Register Agent with Wazuh Manager
     - name: Register Wazuh agent with manager

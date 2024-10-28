@@ -1,0 +1,25 @@
+- name: Install and activate AppArmor on Ubuntu
+  hosts: localhost
+  connection: local
+  become: true
+
+  tasks:
+    - name: Install AppArmor
+      apt:
+        name: apparmor
+        state: present
+
+    - name: Install AppArmor utils
+      apt:
+        name: apparmor-utils
+        state: present
+
+    - name: Ensure AppArmor is enabled and enforcing
+      command: aa-enforce /etc/apparmor.d/*
+      ignore_errors: yes
+
+    - name: Enable AppArmor service to start on boot
+      systemd:
+        name: apparmor
+        enabled: yes
+        state: started

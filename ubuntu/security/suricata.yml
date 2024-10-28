@@ -1,0 +1,60 @@
+- name: Install and configure Suricata
+  hosts: localhost
+  connection: local
+  become: true
+
+  vars:
+    suricata_version: "6.0.3"  # Specify the version of Suricata you want to install
+    suricata_config_path: "/etc/suricata/suricata.yaml"
+
+  tasks:
+    # Step 1: Update the package list
+    - name: Update apt package list
+      apt:
+        update_cache: yes
+
+    # Step 2: Install required packages
+    - name: Install Suricata and dependencies
+      apt:
+        name:
+          - suricata
+          - suricata-update
+          - libpcap-dev
+          - libnet1-dev
+        state: present
+
+    # Step 3: Configure Suricata (if necessary)
+    - name: Ensure Suricata configuration exists
+      copy:
+        src: suricata.yaml
+        dest: "{{ suricata_config_path }}"
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Restart Suricata
+
+    # Step 4: Enable and start the Suricata service
+    - name: Enable and start Suricata service
+      systemd:
+        name: suricata
+        enabled: yes
+        state: started
+
+    # Step 5: Install and configure additional rules (optional)
+    - name: Download Emerging Threats rules
+      get_url:
+        url: https://rules.emergingthreats.net/open/suricata/emerging.rules.tar.gz
+        dest: /tmp/emerging.rules.tar.gz
+
+    - name: Extract Emerging Threats rules
+      unarchive:
+        src: /tmp/emerging.rules.tar.gz
+        dest: /etc/suricata/rules/
+        remote_src: yes
+      notify: Restart Suricata
+
+  handlers:
+    - name: Restart Suricata
+      systemd:
+        name: suricata
+        state: restarted

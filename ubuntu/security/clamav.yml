@@ -1,0 +1,24 @@
+- name: Install and configure ClamAV on Ubuntu
+  hosts: localhost
+  connection: local
+  become: true
+
+  tasks:
+    - name: Install ClamAV and Freshclam for virus definition updates
+      apt:
+        name:
+          - clamav
+          - clamav-freshclam
+        state: present
+
+    - name: Update ClamAV virus definitions
+      command: freshclam
+
+    - name: Perform initial ClamAV scan on root directory
+      shell: "clamscan -r --bell -i /"
+
+    - name: Enable ClamAV service to start on boot
+      systemd:
+        name: clamav-freshclam
+        enabled: yes
+        state: started
