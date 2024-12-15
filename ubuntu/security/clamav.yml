@@ -11,14 +11,30 @@
           - clamav-freshclam
         state: present
 
-    - name: Update ClamAV virus definitions
-      command: freshclam
+    - name: Create log file if not already present
+      command: touch /var/log/clamav/freshclam.log
+      args:
+        creates: /var/log/clamav/freshclam.log
+      become: true
 
-    - name: Perform initial ClamAV scan on root directory
-      shell: "clamscan -r --bell -i /"
+    - name: Ensure Freshclam logging is enabled and configured
+      lineinfile:
+        path: /etc/clamav/freshclam.conf
+        regexp: '^#?UpdateLogFile'
+        line: 'UpdateLogFile /var/log/clamav/freshclam.log'
+      become: true
 
     - name: Enable ClamAV service to start on boot
       systemd:
         name: clamav-freshclam
         enabled: yes
         state: started
+
+    - name: Stop clamav-freshclam service
+      systemd:
+        name: clamav-freshclam
+        state: stopped
+      ignore_errors: true
+
+    - name: Update ClamAV virus definitions
+      command: freshclam

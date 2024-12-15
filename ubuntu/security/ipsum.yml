@@ -1,0 +1,33 @@
+- name: Setup IP blacklist automation using ipsum
+  hosts: localhost
+  connection: local
+  become: true
+
+  tasks:
+    - name: Create directory for blacklist files
+      file:
+        path: /opt/ip-blacklist
+        state: directory
+        mode: '0755'
+
+    - name: Download ip-blacklist.sh script
+      get_url:
+        url: https://raw.githubusercontent.com/sysadt/UFW-Automatic-IP-Blacklisting/main/ip-blacklist.sh
+        dest: /opt/ip-blacklist/ip-blacklist.sh
+        mode: '0755'
+
+    - name: Download update-blacklist.sh script
+      get_url:
+        url: https://raw.githubusercontent.com/sysadt/UFW-Automatic-IP-Blacklisting/main/update-blacklist.sh
+        dest: /opt/ip-blacklist/update-blacklist.sh
+        mode: '0755'
+
+    - name: Add crontab entries for daily runs
+      cron:
+        name: "{{ item.name }}"
+        minute: "{{ item.minute }}"
+        hour: "{{ item.hour }}"
+        job: "{{ item.job }}"
+      loop:
+        - { name: "Update blacklist", minute: "0", hour: "3", job: "/opt/ip-blacklist/update-blacklist.sh" }
+        - { name: "Run blacklist script", minute: "10", hour: "3", job: "/opt/ip-blacklist/ip-blacklist.sh" }

@@ -1,4 +1,3 @@
----
 - name: Install and configure DenyHosts
   hosts: localhost
   connection: local

@@ -1,0 +1,30 @@
+- name: Block IP Scanner
+  hosts: localhost
+  connection: local
+  become: true
+
+  tasks:
+    - name: Install UFW if not present
+      apt:
+        name: ufw
+        state: present
+
+    - name: Fetch deny_ips.txt from GitHub
+      get_url:
+        url: https://raw.githubusercontent.com/fistwho/ipscanner-block-ufw/main/deny_ips.txt
+        dest: /tmp/deny_ips.txt
+
+    - name: Filter valid IP addresses
+      shell: |
+        grep -E '^([0-9]{1,3}\.){3}[0-9]{1,3}(/[0-9]+)?$|^([a-fA-F0-9:]+:+)+[a-fA-F0-9]+(/[0-9]+)?$' /tmp/deny_ips.txt
+      register: valid_ips
+
+    - name: Block IPs using UFW
+      ufw:
+        rule: deny
+        from_ip: "{{ item }}"
+      loop: "{{ valid_ips.stdout_lines }}"
+
+    - name: Enable UFW if not enabled
+      ufw:
+        state: enabled

@@ -20,12 +20,3 @@
       loop:
         - 80
         - 443
-
-    # Step 5: Deny all incoming traffic by default (but allow outgoing)
-    - name: Set default UFW rules (deny incoming, allow outgoing)
-      ufw:
-        default:
-          policy: "{{ item }}"
-      loop:
-        - { incoming: deny }
-        - { outgoing: allow }
