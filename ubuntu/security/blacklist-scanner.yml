@@ -1,30 +1,74 @@
-- name: Block IP Scanner
+- name: Block IPs from GitHub source using ipset
   hosts: localhost
   connection: local
   become: true
 
   tasks:
-    - name: Install UFW if not present
+    - name: Ensure required packages are installed
       apt:
-        name: ufw
+        name:
+          - ipset
+          - curl
         state: present
+        update_cache: yes
 
     - name: Fetch deny_ips.txt from GitHub
       get_url:
         url: https://raw.githubusercontent.com/fistwho/ipscanner-block-ufw/main/deny_ips.txt
         dest: /tmp/deny_ips.txt
+        mode: '0644'
 
     - name: Filter valid IP addresses
       shell: |
         grep -E '^([0-9]{1,3}\.){3}[0-9]{1,3}(/[0-9]+)?$|^([a-fA-F0-9:]+:+)+[a-fA-F0-9]+(/[0-9]+)?$' /tmp/deny_ips.txt
       register: valid_ips
 
-    - name: Block IPs using UFW
-      ufw:
-        rule: deny
-        from_ip: "{{ item }}"
-      loop: "{{ valid_ips.stdout_lines }}"
+    - name: Create ipset blocklist
+      command: ipset create scanner_blacklist hash:net
+      ignore_errors: yes
 
-    - name: Enable UFW if not enabled
-      ufw:
-        state: enabled
+    - name: Add valid IPs to ipset blocklist
+      shell: |
+        echo "{{ valid_ips.stdout_lines | join('\n') }}" | while read -r ip; do
+          ipset add scanner_blacklist "$ip";
+        done
+      args:
+        executable: /bin/bash
+
+    - name: Integrate ipset with iptables
+      iptables:
+        chain: INPUT
+        action: append
+        jump: DROP
+        match: set
+        set_name: scanner_blacklist
+
+    - name: Save ipset rules to file
+      command: ipset save > /etc/ipset.rules
+
+    - name: Save iptables rules
+      command: iptables-save > /etc/iptables/rules.v4
+
+    - name: Create systemd service for ipset restore
+      copy:
+        dest: /etc/systemd/system/ipset-restore.service
+        content: |
+          [Unit]
+          Description=Restore ipset rules
+          Before=network-pre.target
+          Wants=network-pre.target
+
+          [Service]
+          Type=oneshot
+          ExecStart=/sbin/ipset restore < /etc/ipset.rules
+          ExecStop=/sbin/ipset flush
+          RemainAfterExit=yes
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Enable and start ipset-restore service
+      systemd:
+        name: ipset-restore
+        enabled: yes
+        state: started

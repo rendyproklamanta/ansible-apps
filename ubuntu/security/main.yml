@@ -2,7 +2,6 @@
 - import_playbook: ufw-whitelist.yml
 - import_playbook: fail2ban.yml
 - import_playbook: apparmor.yml
-- import_playbook: clamav.yml
 - import_playbook: ufw-blocklist.yml
 
 ## Recomended to block IP
@@ -10,6 +9,7 @@
 #- import_playbook: blacklist-scanner.yml
 
 ## Optional
+#- import_playbook: clamav.yml
 #- import_playbook: wazuh-agent.yml
 #- import_playbook: google-authenticator.yml
 #- import_playbook: suricata.yml

@@ -58,7 +58,7 @@
     # - name: Allow SSH only from a specific IP
     #   ufw:
     #     rule: allow
-    #     port: 2123
+    #     port: {{ ssh_port }}
     #     proto: tcp
     #     from_ip: 192.168.1.100   # Replace with your trusted IP
 
