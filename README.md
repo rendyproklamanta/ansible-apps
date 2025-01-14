@@ -24,3 +24,11 @@ git clone https://github.com/rendyproklamanta/ansible-apps.git .
 ```sh
 ansible-playbook filename.yml
 ```
+
+- Step to setup new server wih docker deployment
+
+```sh
+ansible-playbook ubuntu/docker/main.yml
+ansible-playbook ubuntu/setup/main.yml
+ansible-playbook ubuntu/security/main.yml
+```

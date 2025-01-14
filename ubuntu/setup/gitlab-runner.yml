@@ -33,3 +33,9 @@
         line: 'gitlab-runner ALL=(ALL) NOPASSWD:ALL'
         validate: 'visudo -cf %s'
         state: present
+        
+    - name: Add gitlab-runner to docker group
+      user:
+        name: gitlab-runner
+        group: docker
+        append: yes
