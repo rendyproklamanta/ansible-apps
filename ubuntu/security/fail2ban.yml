@@ -6,7 +6,7 @@
   vars:
     fail2ban_jail_local_path: "/etc/fail2ban/jail.local"
     sshd_maxretry: 5  # Max retries before banning IP
-    ban_time: 600     # Ban time in seconds
+    ban_time: 3600    # Ban time in seconds
     find_time: 600    # Find time (window for detecting failures)
 
   tasks:

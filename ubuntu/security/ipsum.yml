@@ -1,33 +1,50 @@
-- name: Setup IP blacklist automation using ipsum
+- name: Block IPs using ipsum list with iptables and ipset
   hosts: localhost
   connection: local
   become: true
-
   tasks:
-    - name: Create directory for blacklist files
-      file:
-        path: /opt/ip-blacklist
-        state: directory
-        mode: '0755'
+    - name: Install required packages
+      apt:
+        name:
+          - iptables
+          - ipset
+        state: present
+        update_cache: yes
 
-    - name: Download ip-blacklist.sh script
+    - name: Flush the existing ipset set if it exists
+      command: ipset flush ipsum
+      ignore_errors: yes
+
+    - name: Create ipset hash:ip set
+      command: ipset create ipsum hash:ip
+      args:
+        creates: /etc/ipset/ipset.rules
+      ignore_errors: yes
+
+    - name: Download ipsum IP list
       get_url:
-        url: https://raw.githubusercontent.com/sysadt/UFW-Automatic-IP-Blacklisting/main/ip-blacklist.sh
-        dest: /opt/ip-blacklist/ip-blacklist.sh
-        mode: '0755'
+        url: https://raw.githubusercontent.com/stamparm/ipsum/master/ipsum.txt
+        dest: /tmp/ipsum.txt
+        mode: '0644'
 
-    - name: Download update-blacklist.sh script
-      get_url:
-        url: https://raw.githubusercontent.com/sysadt/UFW-Automatic-IP-Blacklisting/main/update-blacklist.sh
-        dest: /opt/ip-blacklist/update-blacklist.sh
-        mode: '0755'
+    - name: Add IPs to ipset from ipsum.txt
+      shell: |
+        for ip in $(grep -v "#" /tmp/ipsum.txt | grep -v -E "\s[1-2]$" | cut -f 1); do
+          ipset add ipsum $ip || true
+        done
+      args:
+        executable: /bin/bash
 
-    - name: Add crontab entries for daily runs
-      cron:
-        name: "{{ item.name }}"
-        minute: "{{ item.minute }}"
-        hour: "{{ item.hour }}"
-        job: "{{ item.job }}"
-      loop:
-        - { name: "Update blacklist", minute: "0", hour: "3", job: "/opt/ip-blacklist/update-blacklist.sh" }
-        - { name: "Run blacklist script", minute: "10", hour: "3", job: "/opt/ip-blacklist/ip-blacklist.sh" }
+    - name: Remove existing iptables rule for ipsum set
+      command: iptables -D INPUT -m set --match-set ipsum src -j DROP
+      ignore_errors: yes
+
+    - name: Add iptables rule to drop traffic from ipsum set
+      command: iptables -I INPUT -m set --match-set ipsum src -j DROP
+
+    - name: Save iptables and ipset rules
+      shell: |
+        iptables-save > /etc/iptables/rules.v4
+        ipset save > /etc/ipset/ipset.rules
+      args:
+        executable: /bin/bash

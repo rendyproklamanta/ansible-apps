@@ -1,4 +1,3 @@
----
 - name: Secure SSH
   hosts: localhost
   connection: local
@@ -8,6 +7,10 @@
     - vars.yml
 
   tasks:
+    - name: Ensure UFW is enabled
+      ufw:
+        state: enabled
+
     # Step 1: Add the new user with sudo privileges and SSH key authentication
     - name: Create new user with sudo privileges
       user:
@@ -26,14 +29,6 @@
         group: "{{ ssh_user }}"
         mode: '0700'
 
-    - name: Copy SSH public key for the user
-      copy:
-        src: /path/to/your/public_key.pub   # Replace with the actual path to your SSH public key
-        dest: "/home/{{ ssh_user }}/.ssh/authorized_keys"
-        owner: "{{ ssh_user }}"
-        group: "{{ ssh_user }}"
-        mode: '0600'
-
     # Step 2: Harden SSH configuration
     - name: Harden SSH - Disable root login, disable password authentication, and change SSH port
       lineinfile:
@@ -43,9 +38,21 @@
         state: present
       loop:
         - { regexp: '^#?PermitRootLogin', line: 'PermitRootLogin no' }
-        - { regexp: '^#?PasswordAuthentication', line: 'PasswordAuthentication no' }
         - { regexp: '^#?Port', line: 'Port {{ ssh_port }}' }
         - { regexp: '^#?AllowUsers', line: 'AllowUsers {{ ssh_user }}' }
+        - { regexp: '^#?PermitEmptyPasswords', line: 'PermitEmptyPasswords no' }
+        - { regexp: '^#?Banner', line: 'Banner none' }
+        - { regexp: '^#?Protocol', line: 'Protocol 2' }
+        - { regexp: '^#?LogLevel', line: 'LogLevel VERBOSE' }
+        # - { regexp: '^#?PasswordAuthentication', line: 'PasswordAuthentication no' }
+
+    # - name: Copy SSH public key for the user
+    #   copy:
+    #     src: /path/to/your/public_key.pub   # Replace with the actual path to your SSH public key
+    #     dest: "/home/{{ ssh_user }}/.ssh/authorized_keys"
+    #     owner: "{{ ssh_user }}"
+    #     group: "{{ ssh_user }}"
+    #     mode: '0600'
 
     # # Step 3: Optional - Restrict SSH to specific IP ranges (for added security)
     # - name: Restrict SSH access to specific IP ranges (optional)
@@ -62,19 +69,20 @@
     #     proto: tcp
     #     from_ip: 192.168.1.100   # Replace with your trusted IP
 
-    # Step 4: Reload SSH service to apply changes
-    - name: Restart SSH service to apply changes
-      systemd:
-        name: ssh
-        state: restarted
-
-    # Step 5: Ensure UFW firewall allows the new SSH port
+    # Ensure UFW firewall allows the new SSH port
     - name: Allow new SSH port in UFW
       ufw:
         rule: allow
         port: {{ ssh_port }}
         proto: tcp
 
-    - name: Ensure UFW is enabled
-      ufw:
-        state: enabled
+    - name: Restart SSH service
+      service:
+        name: ssh
+        state: restarted
+
+    # Reload SSH service to apply changes
+    - name: Restart SSH service to apply changes
+      systemd:
+        name: ssh
+        state: restarted
