@@ -73,7 +73,7 @@
     - name: Allow new SSH port in UFW
       ufw:
         rule: allow
-        port: {{ ssh_port }}
+        port: "{{ ssh_port }}"
         proto: tcp
 
     - name: Restart SSH service
