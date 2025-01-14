@@ -11,14 +11,20 @@
         state: present
         update_cache: yes
 
+    - name: Ensure ipset kernel module is loaded
+      command: sudo modprobe ip_set_hash_ip
+      ignore_errors: yes
+
     - name: Flush the existing ipset set if it exists
-      command: ipset flush ipsum
+      command: sudo ipset flush ipsum
+      ignore_errors: yes
+
+    - name: Destroy the existing ipset set if it exists
+      command: sudo ipset destroy ipsum
       ignore_errors: yes
 
     - name: Create ipset hash:ip set
-      command: ipset create ipsum hash:ip
-      args:
-        creates: /etc/ipset/ipset.rules
+      command: sudo ipset create ipsum hash:ip
       ignore_errors: yes
 
     - name: Download ipsum IP list
@@ -30,21 +36,87 @@
     - name: Add IPs to ipset from ipsum.txt
       shell: |
         for ip in $(grep -v "#" /tmp/ipsum.txt | grep -v -E "\s[1-2]$" | cut -f 1); do
-          ipset add ipsum $ip || true
+          ipset add ipsum $ip 2>/dev/null || true
         done
       args:
         executable: /bin/bash
 
     - name: Remove existing iptables rule for ipsum set
-      command: iptables -D INPUT -m set --match-set ipsum src -j DROP
+      command: sudo iptables -D INPUT -m set --match-set ipsum src -j DROP
       ignore_errors: yes
 
     - name: Add iptables rule to drop traffic from ipsum set
-      command: iptables -I INPUT -m set --match-set ipsum src -j DROP
+      command: sudo iptables -I INPUT -m set --match-set ipsum src -j DROP
+
+    - name: Ensure directories for rules exist
+      file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - /etc/iptables
+        - /etc/ipset
 
     - name: Save iptables and ipset rules
       shell: |
-        iptables-save > /etc/iptables/rules.v4
-        ipset save > /etc/ipset/ipset.rules
+        sudo iptables-save > /etc/iptables/rules.v4
+        sudo ipset save > /etc/ipset/ipset.rules
       args:
         executable: /bin/bash
+
+    - name: Create systemd service for ipsum ipset restore
+      copy:
+        dest: /etc/systemd/system/ipset-restore-ipsum.service
+        content: |
+          [Unit]
+          Description=Restore ipsum ipset rules
+          Before=network-pre.target
+          Wants=network-pre.target
+
+          [Service]
+          Type=oneshot
+          ExecStartPre=/bin/bash -c "grep -E '^ *(add +ipsum)' /etc/ipset.rules | while read -r line; do ipset restore -exist <<< \"$line\"; done"
+          ExecStart=/bin/bash -c "ipset restore -exist < /etc/ipset/ipset.rules"
+          ExecStop=/sbin/ipset flush
+          RemainAfterExit=yes
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Reload systemd configuration
+      command: sudo systemctl daemon-reload
+
+    - name: Enable and start ipset-restore-ipsum service
+      systemd:
+        name: ipset-restore-ipsum.service
+        enabled: true
+        state: started
+
+    - name: Create the update-ipsum script
+      copy:
+        dest: /usr/local/bin/update-ipsum.sh
+        content: |
+          #!/bin/bash
+          # Download the latest ipsum list
+          curl -s -o /tmp/ipsum.txt https://raw.githubusercontent.com/stamparm/ipsum/master/ipsum.txt
+
+          # Add new IPs to the ipset
+          for ip in $(grep -v "#" /tmp/ipsum.txt | grep -v -E "\s[1-2]$" | cut -f 1); do
+            ipset add ipsum $ip 2>/dev/null || true
+          done
+        mode: '0755'
+
+    - name: Add cron job to run update-ipsum.sh every 12 hours
+      cron:
+        name: "Update ipsum list and add new IPs"
+        minute: "0"
+        hour: "*/12"
+        job: "/usr/local/bin/update-ipsum.sh"
+        user: root
+
+  handlers:
+    - name: Reload systemd
+      command: systemctl daemon-reload
+
+## Check status
+## sudo systemctl status ipset-restore-ipsum.service

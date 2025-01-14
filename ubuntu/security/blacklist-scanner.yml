@@ -24,23 +24,23 @@
       register: valid_ips
 
     - name: Create ipset blocklist
-      command: ipset create scanner_blacklist hash:net
+      command: sudo ipset create scanner_blacklist hash:net
       ignore_errors: yes
 
     - name: Add valid IPs to ipset blocklist
       shell: |
         for ip in {{ valid_ips.stdout_lines | join(' ') }}; do
-          ipset add scanner_blacklist "$ip";
+          sudo ipset add scanner_blacklist "$ip";
         done
       args:
         executable: /bin/bash
       ignore_errors: yes
 
     - name: Integrate ipset with iptables
-      command: iptables -I INPUT -m set --match-set scanner_blacklist src -j DROP
+      command: sudo iptables -I INPUT -m set --match-set scanner_blacklist src -j DROP
 
     - name: Save ipset rules to file
-      shell: ipset save > /etc/ipset.rules
+      shell: sudo ipset save > /etc/ipset.rules
 
     - name: Ensure iptables directory exists
       file:
@@ -49,20 +49,21 @@
         mode: '0755'
 
     - name: Save iptables rules
-      shell: iptables-save > /etc/iptables/rules.v4
+      shell: sudo iptables-save > /etc/iptables/rules.v4
 
-    - name: Create systemd service for ipset restore
+    - name: Create systemd service for scanner_blacklist ipset restore
       copy:
-        dest: /etc/systemd/system/ipset-restore.service
+        dest: /etc/systemd/system/ipset-restore-scanner-blacklist.service
         content: |
           [Unit]
-          Description=Restore ipset rules
+          Description=Restore scanner_blacklist ipset rules
           Before=network-pre.target
           Wants=network-pre.target
 
           [Service]
           Type=oneshot
-          ExecStartPre=/bin/bash -c 'grep -E "^\s*(add\s+scanner_blacklist)" /etc/ipset.rules | while read -r line; do ipset $line; done'
+          ExecStartPre=/bin/bash -c "grep -E '^ *(add +scanner_blacklist)' /etc/ipset.rules | while read -r line; do ipset restore -exist <<< \"$line\"; done"
+          ExecStart=/bin/bash -c "ipset restore -exist < /etc/ipset/ipset.rules"
           ExecStop=/sbin/ipset flush
           RemainAfterExit=yes
 
@@ -70,22 +71,17 @@
           WantedBy=multi-user.target
 
     - name: Reload systemd configuration
-      command: systemctl daemon-reload
+      command: sudo systemctl daemon-reload
 
-    - name: Enable and start ipset-restore service
+    - name: Enable and start ipset-restore-scanner-blacklist service
       systemd:
-        name: ipset-restore
-        enabled: yes
+        name: ipset-restore-scanner-blacklist.service
+        enabled: true
         state: started
 
-    - name: Check ipset-restore service status
-      command: systemctl status ipset-restore --no-pager
-      register: ipset_restore_status
-      ignore_errors: yes
-
-    - name: Show ipset-restore service status
-      debug:
-        var: ipset_restore_status.stdout
+  handlers:
+    - name: Reload systemd
+      command: sudo systemctl daemon-reload
 
 ## Check status
-## systemctl status ipset-restore
+## sudo systemctl status ipset-restore-scanner-blacklist.service

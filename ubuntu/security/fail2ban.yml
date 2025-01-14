@@ -2,7 +2,7 @@
   hosts: localhost
   connection: local
   become: true
-  
+
   vars:
     fail2ban_jail_local_path: "/etc/fail2ban/jail.local"
     sshd_maxretry: 5  # Max retries before banning IP
@@ -24,14 +24,21 @@
         name: fail2ban
         state: present
 
-    # Step 2: Create Fail2Ban configuration file (jail.local)
+    # Step 2: Ensure jail.local exists before backup
+    - name: Ensure jail.local file exists
+      file:
+        path: "{{ fail2ban_jail_local_path }}"
+        state: touch
+        mode: '0644'
+
     - name: Backup the original jail.local if it exists
       copy:
         src: "{{ fail2ban_jail_local_path }}"
         dest: "{{ fail2ban_jail_local_path }}.bak"
-        backup: yes
+        remote_src: true
       ignore_errors: true
 
+    # Step 3: Create or overwrite Fail2Ban configuration
     - name: Configure Fail2Ban for SSH protection in jail.local
       copy:
         dest: "{{ fail2ban_jail_local_path }}"
@@ -49,14 +56,14 @@
           logpath = /var/log/auth.log
           maxretry = {{ sshd_maxretry }}
 
-    # Step 3: Restart Fail2Ban service to apply configuration
+    # Step 4: Restart Fail2Ban service to apply configuration
     - name: Ensure Fail2Ban service is started and enabled at boot
       service:
         name: fail2ban
         state: started
         enabled: yes
 
-    # Step 4: Verify Fail2Ban status
+    # Step 5: Verify Fail2Ban status
     - name: Check Fail2Ban service status
       shell: systemctl status fail2ban | grep Active
       register: fail2ban_status

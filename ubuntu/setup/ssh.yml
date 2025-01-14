@@ -29,6 +29,13 @@
         group: "{{ ssh_user }}"
         mode: '0700'
 
+    - name: Add user to sudoers
+      lineinfile:
+        dest: /etc/sudoers
+        line: "{{ ssh_user }} ALL=(ALL) NOPASSWD:ALL"
+        validate: "visudo -cf %s"
+        state: present
+
     # Step 2: Harden SSH configuration
     - name: Harden SSH - Disable root login, disable password authentication, and change SSH port
       lineinfile:
