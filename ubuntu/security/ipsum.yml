@@ -75,6 +75,7 @@
 
           [Service]
           Type=oneshot
+          ExecStartPre=/bin/bash -c "ipset list ipsum || ipset create ipsum hash:net"
           ExecStartPre=/bin/bash -c "grep -E '^ *(add +ipsum)' /etc/ipset.rules | while read -r line; do ipset restore -exist <<< \"$line\"; done"
           ExecStart=/bin/bash -c "ipset restore -exist < /etc/ipset/ipset.rules"
           ExecStop=/sbin/ipset flush
