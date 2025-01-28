@@ -25,6 +25,12 @@ git clone https://github.com/rendyproklamanta/ansible-apps.git .
 ansible-playbook filename.yml
 ```
 
+- Change variables
+
+```sh
+nano ubuntu/setup/vars.yml
+```
+
 - Step to setup new server wih docker deployment
 
 ```sh
