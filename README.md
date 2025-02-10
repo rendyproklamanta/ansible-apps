@@ -19,19 +19,13 @@ cd /var/lib/ansible
 git clone https://github.com/rendyproklamanta/ansible-apps.git .
 ```
 
-- Run ansible
-
-```sh
-ansible-playbook filename.yml
-```
-
 - Change variables
 
 ```sh
 nano ubuntu/setup/vars.yml
 ```
 
-- Step to setup new server wih docker deployment
+- Step to setup new server with docker deployment
 
 ```sh
 ansible-playbook ubuntu/docker/main.yml
