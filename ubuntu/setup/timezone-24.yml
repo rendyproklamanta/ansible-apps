@@ -1,0 +1,37 @@
+- name: Configure systemd-timesyncd for Asia/Jakarta
+  hosts: localhost
+  connection: local
+  become: true
+
+  tasks:
+    - name: Set timezone to Asia/Jakarta
+      command: timedatectl set-timezone Asia/Jakarta
+
+    - name: Configure systemd-timesyncd NTP servers
+      lineinfile:
+        path: /etc/systemd/timesyncd.conf
+        regexp: '^NTP='
+        line: 'NTP=0.id.pool.ntp.org 1.id.pool.ntp.org 2.id.pool.ntp.org 3.id.pool.ntp.org'
+        create: yes
+
+    - name: Configure systemd-timesyncd fallback NTP servers
+      lineinfile:
+        path: /etc/systemd/timesyncd.conf
+        regexp: '^FallbackNTP='
+        line: 'FallbackNTP=ntp.ubuntu.com'
+        create: yes
+
+    - name: Restart systemd-timesyncd
+      systemd:
+        name: systemd-timesyncd
+        state: restarted
+        enabled: yes
+
+    - name: Verify time sync status
+      command: timedatectl show-timesync --all
+      register: timesync_status
+      changed_when: false
+
+    - name: Display time sync status
+      debug:
+        msg: "{{ timesync_status.stdout }}"

@@ -8,18 +8,28 @@
       apt:
         name: apparmor
         state: present
+      when: ansible_facts.packages['apparmor'] is not defined
 
     - name: Install AppArmor utils
       apt:
         name: apparmor-utils
         state: present
-
-    - name: Ensure AppArmor is enabled and enforcing
-      command: aa-enforce /etc/apparmor.d/*
-      ignore_errors: yes
+      when: ansible_facts.packages['apparmor-utils'] is not defined
 
     - name: Enable AppArmor service to start on boot
       systemd:
         name: apparmor
         enabled: yes
         state: started
+      when: ansible_facts.packages['apparmor'] is defined
+
+    - name: Ensure AppArmor is enforcing profiles
+      command: aa-enforce /etc/apparmor.d/*
+      register: enforce_result
+      ignore_errors: yes
+      when: ansible_facts.packages['apparmor'] is defined
+
+    - name: Display enforcement result
+      debug:
+        msg: "{{ enforce_result }}"
+      when: enforce_result is defined

@@ -1,8 +1,9 @@
-#- import_playbook: systemd-resolved.yml
 - import_playbook: ssh.yml
 - import_playbook: ufw.yml
-- import_playbook: timezone.yml
-- import_playbook: dns-resolvconf.yml
+# - import_playbook: timezone-22.yml # for ubuntu 22.04
+- import_playbook: timezone-24.yml # for ubuntu 24.04
+#- import_playbook: dns-resolvconf.yml # for ubuntu 22.04
+- import_playbook: dns-systemd-resolved.yml # for ubuntu 24.04
 - import_playbook: update.yml
 - import_playbook: gitlab-runner.yml
 - import_playbook: reboot.yml

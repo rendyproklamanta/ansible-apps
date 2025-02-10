@@ -25,6 +25,12 @@ git clone https://github.com/rendyproklamanta/ansible-apps.git .
 nano ubuntu/setup/vars.yml
 ```
 
+- Change import file based on your OS Version
+
+```sh
+nano ubuntu/setup/main.yml
+```
+
 - Step to setup new server with docker deployment
 
 ```sh
