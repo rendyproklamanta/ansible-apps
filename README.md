@@ -36,5 +36,10 @@ nano ubuntu/setup/main.yml
 ```sh
 ansible-playbook ubuntu/docker/main.yml
 ansible-playbook ubuntu/setup/main.yml
-ansible-playbook ubuntu/security/main.yml
+```
+
+- Deploy ansible security
+
+```sh
+ansible-playbook /var/lib/ansible/ubuntu/security/main.yml
 ```
