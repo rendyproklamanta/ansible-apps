@@ -34,8 +34,8 @@ nano ubuntu/setup/main.yml
 - Step to setup new server with docker deployment
 
 ```sh
-ansible-playbook ubuntu/docker/main.yml
-ansible-playbook ubuntu/setup/main.yml
+ansible-playbook /var/lib/ansible/ubuntu/docker/main.yml
+ansible-playbook /var/lib/ansible/ubuntu/setup/main.yml
 ```
 
 - Deploy ansible security
