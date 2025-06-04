@@ -5,5 +5,4 @@
 #- import_playbook: dns-resolvconf.yml # for ubuntu 22.04
 - import_playbook: dns-systemd-resolved.yml # for ubuntu 24.04
 - import_playbook: update.yml
-- import_playbook: gitlab-runner.yml
 - import_playbook: reboot.yml
