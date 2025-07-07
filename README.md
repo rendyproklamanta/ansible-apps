@@ -6,15 +6,10 @@
 apt install ansible -y
 ```
 
-- Create dir for ansible
-
-```sh
-mkdir -p /var/lib/ansible
-```
-
 - Clone git
 
 ```sh
+mkdir -p /var/lib/ansible
 cd /var/lib/ansible
 git clone https://github.com/rendyproklamanta/ansible-apps.git .
 ```
